@@ -24,12 +24,7 @@ void chat_client::async_connect(const std::string& host, const std::string& port
 {
   console_.write("Use the command \"\\quit\" to leave the chat.");
   console_.write("Connecting to " + host + ":" + port + "...");
-  client_.on_event<connection_success>([this](const socket_ptr& s){
-    on_connection_success(s);
-  });
-  client_.on_event<connection_failure>([this](const boost::system::error_code& code){
-    console_.write("Error while connecting: " + code.message()); 
-  });
+  client_.register_conn_listener(shared_from_this());
   client_.async_connect(host, port);
 }
 
@@ -64,6 +59,11 @@ void chat_client::on_connection_success(const socket_ptr& socket)
 
   async_wait_message();
   console_.write("Connected to " + ip_port(socket_));
+}
+
+void chat_client::on_connection_failure(const boost::system::error_code& code)
+{
+  console_.write("Error while connecting: " + code.message()); 
 }
 
 void chat_client::async_send_msg(std::string&& message)
@@ -130,9 +130,9 @@ void chat_client::console_listen_loop()
 
 int main()
 {
-  std::string host = "localhost";
+  std::string host = "::1";
   std::string port = "8000";
-  chat_client client;
-  client.async_connect(host, port);
-  client.run();
+  std::shared_ptr<chat_client> client = std::make_shared<chat_client>();
+  client->async_connect(host, port);
+  client->run();
 }

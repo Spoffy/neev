@@ -9,11 +9,14 @@
 
 #include "chat_console.hpp"
 #include <neev/client/client.hpp>
+#include <neev/client/connection_listener.hpp>
 #include <thread>
 #include <string>
 
-class chat_client {
+class chat_client : public neev::connection_listener, public std::enable_shared_from_this<chat_client> {
  public:
+  using socket_ptr = neev::client::socket_ptr;
+
   chat_client();
 
   //! Connect to a given chat server host.
@@ -24,9 +27,10 @@ class chat_client {
   void async_send_msg(std::string&& message);
   void run();
 
- private:
-  using socket_ptr = std::shared_ptr<boost::asio::ip::tcp::socket>;
+  void on_connection_success(const socket_ptr& socket) override;
+  void on_connection_failure(const boost::system::error_code& error) override;
 
+ private:
   bool connected() const;
   void disconnect(const std::string& reason);
   void async_wait_message();
@@ -34,7 +38,6 @@ class chat_client {
   void console_listen_loop();
 
   void message_received(const std::string&);
-  void on_connection_success(const socket_ptr& socket);
 
   socket_ptr socket_;
   std::thread console_task_;

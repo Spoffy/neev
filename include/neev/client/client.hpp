@@ -9,6 +9,7 @@
 #ifndef NEEV_CLIENT_HPP
 #define NEEV_CLIENT_HPP
 
+#include <neev/client/connection_listener.hpp>
 #include <neev/client/client_connection_events.hpp>
 #include <boost/lexical_cast.hpp>
 #include <memory>
@@ -45,6 +46,16 @@ public:
       boost::bind(&shared_client::handle_resolve, shared_from_this(),
         boost::asio::placeholders::error,
         boost::asio::placeholders::iterator));
+  }
+
+  void register_conn_listener(const std::shared_ptr<connection_listener>& receiver)
+  {
+    events_.on_event<connection_success>([receiver](const socket_ptr& socket){
+      receiver->on_connection_success(socket);
+    });
+    events_.on_event<connection_failure>([receiver](const boost::system::error_code& error){
+      receiver->on_connection_failure(error);
+    });
   }
 
   /** Add an event to the current object.
@@ -167,6 +178,10 @@ public:
   boost::signals2::connection on_event(F f)
   {
     return shared_client->on_event<Event>(f);
+  }
+
+  void register_conn_listener(const std::shared_ptr<connection_listener> receiver) {
+    shared_client->register_conn_listener(receiver);
   }
 
   /**
