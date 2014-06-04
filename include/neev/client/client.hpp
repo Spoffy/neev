@@ -145,7 +145,7 @@ private:
 
 /** Build the client with a io_service, it doesn't launch anything.
 */
-std::shared_ptr<shared_client> make_shared_client(boost::asio::io_service &io_service)
+inline std::shared_ptr<shared_client> make_shared_client(boost::asio::io_service &io_service)
 {
   return std::make_shared<shared_client>(std::ref(io_service));
 }
