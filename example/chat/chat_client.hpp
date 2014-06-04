@@ -8,12 +8,18 @@
 #define CHAT_CLIENT_HPP
 
 #include "chat_console.hpp"
+#include "chat_receiver.hpp"
 #include <neev/client/client.hpp>
 #include <neev/client/connection_listener.hpp>
+#include <neev/transfer_listener.hpp>
 #include <thread>
 #include <string>
 
-class chat_client : public neev::connection_listener, public std::enable_shared_from_this<chat_client> {
+class chat_receiver;
+
+class chat_client : 
+ public neev::connection_listener, 
+ public std::enable_shared_from_this<chat_client> {
  public:
   using socket_ptr = neev::client::socket_ptr;
 
@@ -30,20 +36,22 @@ class chat_client : public neev::connection_listener, public std::enable_shared_
   void on_connection_success(const socket_ptr& socket) override;
   void on_connection_failure(const boost::system::error_code& error) override;
 
- private:
   bool connected() const;
   void disconnect(const std::string& reason);
+  void message_received(const std::string&);
+
+ private:
+  using receiver_ptr = std::shared_ptr<chat_receiver>;
   void async_wait_message();
 
   void console_listen_loop();
-
-  void message_received(const std::string&);
 
   socket_ptr socket_;
   std::thread console_task_;
   chat_console console_;
   boost::asio::io_service io_service_;
   neev::client client_;
+  receiver_ptr receiver_;
 };
 
 #endif

@@ -18,7 +18,9 @@ chat_client::chat_client()
   console_(),
   io_service_(), 
   client_(io_service_)
-{};
+{
+  receiver_ = std::make_shared<chat_receiver>(shared_from_this());
+};
 
 void chat_client::async_connect(const std::string& host, const std::string& port)
 {
@@ -31,21 +33,8 @@ void chat_client::async_connect(const std::string& host, const std::string& port
 void chat_client::message_received(const std::string& message)
 {
   console_.write(message);
-  async_wait_message();
-}
-
-void chat_client::async_wait_message()
-{
-  if(socket_)
-  {
-    auto receiver = make_fixed32_receiver<no_timer>(socket_);
-    receiver->on_event<transfer_complete>([=](){
-      message_received(receiver->data());
-    });
-    receiver->on_event<transfer_error>([this](const boost::system::error_code& e){
-      disconnect(e.message());
-    });
-    receiver->async_transfer();
+  if(socket_) {
+    receiver_->async_wait_message(socket_);
   }
 }
 
@@ -57,7 +46,7 @@ void chat_client::on_connection_success(const socket_ptr& socket)
   // Launch console thread only when we are connected.
   console_task_ = std::thread([this](){console_listen_loop();});
 
-  async_wait_message();
+  receiver_->async_wait_message(socket_);
   console_.write("Connected to " + ip_port(socket_));
 }
 

@@ -13,6 +13,7 @@
 #define NEEV_NETWORK_TRANSFER_HPP
 
 #include <neev/transfer_events.hpp>
+#include <neev/transfer_listener.hpp>
 #include <boost/asio.hpp>
 #include <boost/assert.hpp>
 #include <memory>
@@ -58,6 +59,8 @@ public:
   */
   template <class Event, class F>
   boost::signals2::connection on_event(F f, boost::signals2::connect_position pos = boost::signals2::at_back);
+
+  void register_transfer_listener(const std::shared_ptr<transfer_listener>&);
 
   /** Start an asynchronous transfer of data.
   */
@@ -175,6 +178,23 @@ boost::signals2::connection network_transfer<BufferProvider, TransferOp, TimerPo
 on_event(F f, boost::signals2::connect_position pos)
 {
   return events_.on_event<Event>(f, pos);
+}
+
+template <class BufferProvider, class TransferOp, class TimerPolicy>
+void network_transfer<BufferProvider, TransferOp, TimerPolicy>::
+register_transfer_listener(const std::shared_ptr<transfer_listener>& listener) {
+  events_.on_event<transfer_complete>([listener]() {
+    listener->on_transfer_complete();
+  });
+  events_.on_event<transfer_error>([listener](const boost::system::error_code& code) {
+    listener->on_transfer_error(code);
+  });
+  events_.on_event<transfer_on_going>([listener](std::size_t bytes_transferred, std::size_t bytes_to_transfer) {
+    listener->on_transfer_on_going(bytes_transferred, bytes_to_transfer);
+  });
+  events_.on_event<chunk_complete>([listener](const events_subscriber_view<transfer_events>& events) {
+    listener->on_chunk_complete(events);
+  });
 }
 
 // We ignore the treatment of the error, it will be handled by the on_chunk_complete operation.
