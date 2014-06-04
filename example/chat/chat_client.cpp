@@ -19,7 +19,7 @@ chat_client::chat_client()
   io_service_(), 
   client_(io_service_)
 {
-  receiver_ = std::make_shared<chat_receiver>(shared_from_this());
+  receiver_ = std::make_shared<chat_receiver>(this);
 };
 
 void chat_client::async_connect(const std::string& host, const std::string& port)
