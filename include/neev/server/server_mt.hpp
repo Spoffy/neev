@@ -81,6 +81,11 @@ public:
     return thread_pool_size_;
   }
 
+  boost::asio::io_service& get_io_service()
+  {
+    return base_type::get_io_service();
+  }
+
 private:
   void run_one()
   {
